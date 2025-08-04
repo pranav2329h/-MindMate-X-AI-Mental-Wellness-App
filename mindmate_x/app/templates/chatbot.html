@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MindMate Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 30px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h2 { text-align: center; }
+    #chat-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 20px;
+      height: 400px;
+      overflow-y: scroll;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .message {
+      padding: 8px 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      max-width: 80%;
+    }
+    .user { background-color: #d1e7dd; align-self: flex-end; text-align: right; margin-left: auto; }
+    .ai { background-color: #f8d7da; align-self: flex-start; text-align: left; margin-right: auto; }
+    #chat-form {
+      margin-top: 20px;
+      display: flex;
+    }
+    #message-input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    #send-btn {
+      padding: 10px 20px;
+      margin-left: 10px;
+      background-color: #007bff;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>MindMate – AI Mental Health Chatbot</h2>
+  <div id="chat-box"></div>
+  <form id="chat-form">
+    <input type="text" id="message-input" placeholder="Type your message..." required />
+    <button type="submit" id="send-btn">Send</button>
+  </form>
+
+  <script>
+  const chatForm = document.getElementById('chat-form');
+  const chatBox = document.getElementById('chat-box');
+  const messageInput = document.getElementById('message-input');
+
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const userMessage = messageInput.value.trim();
+    if (!userMessage) return;
+
+    appendMessage(userMessage, 'user');
+    messageInput.value = '';
+
+    // Show spinner while waiting for AI response
+    const spinner = appendMessage("Typing...", 'ai', true);
+
+    try {
+      const response = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage })
+      });
+
+      const data = await response.json();
+      spinner.innerText = data.reply;
+    } catch (error) {
+      spinner.innerText = "Sorry, something went wrong.";
+    }
+  });
+
+  function appendMessage(text, sender, isTemporary = false) {
+    const msg = document.createElement('div');
+    msg.className = `message ${sender}`;
+    msg.innerText = text;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    return isTemporary ? msg : null;
+  }
+</script>
+
+</body>
+</html>

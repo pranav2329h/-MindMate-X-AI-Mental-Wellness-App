@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MindMate Journal</title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; background: #f8f9fa; }
+        h2 { text-align: center; }
+        .entry {
+            background: #fff;
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 5px solid #007bff;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+        }
+        .timestamp { color: gray; font-size: 0.9em; margin-bottom: 5px; }
+        .user { font-weight: bold; color: #333; }
+        .ai { margin-top: 10px; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>📝 Your Journal Entries</h2>
+    {% for entry in entries %}
+    <div class="entry">
+        <div class="timestamp">{{ entry.timestamp.strftime('%d %b %Y, %I:%M %p') }}</div>
+        <div class="user">You: {{ entry.user_message }}</div>
+        <div class="ai">MindMate: {{ entry.ai_reply }}</div>
+    </div>
+    {% endfor %}
+</body>
+</html>
