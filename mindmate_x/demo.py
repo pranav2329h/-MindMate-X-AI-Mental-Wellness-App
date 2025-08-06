@@ -1,8 +1,9 @@
-from app import create_app, db
-from app.models import ChatHistory, JournalEntry
+# reset_db.py
+from app import db, create_app
 
 app = create_app()
 
 with app.app_context():
+    db.drop_all()
     db.create_all()
-    print("✅ Database and tables created successfully!")
+    print("✅ Database reset successful")

@@ -15,6 +15,9 @@ def create_app():
     app.register_blueprint(journal_bp)
     from app.routes.chatbot import chatbot_bp
     app.register_blueprint(chatbot_bp)
+    from app.routes.dashboard import dashboard_bp
+    app.register_blueprint(dashboard_bp)
+
 
 
     return app

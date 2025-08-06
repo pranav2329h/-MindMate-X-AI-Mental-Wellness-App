@@ -3,26 +3,50 @@
 <head>
     <title>MindMate Journal</title>
     <style>
-        body { font-family: sans-serif; max-width: 700px; margin: auto; padding: 20px; background: #f8f9fa; }
-        h2 { text-align: center; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
         .entry {
-            background: #fff;
-            margin: 15px 0;
-            padding: 15px;
+            background-color: #ffffff;
+            padding: 15px 20px;
+            margin-bottom: 20px;
             border-left: 5px solid #007bff;
             border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .timestamp { color: gray; font-size: 0.9em; margin-bottom: 5px; }
-        .user { font-weight: bold; color: #333; }
-        .ai { margin-top: 10px; color: #555; }
+        .timestamp {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .user {
+            font-weight: bold;
+            color: #333;
+        }
+        .ai {
+            margin-top: 8px;
+            color: #444;
+        }
     </style>
 </head>
 <body>
     <h2>📝 Your Journal Entries</h2>
     {% for entry in entries %}
     <div class="entry">
-        <div class="timestamp">{{ entry.timestamp.strftime('%d %b %Y, %I:%M %p') }}</div>
+        <div class="timestamp">
+            {{ entry.timestamp.strftime('%d %b %Y, %I:%M %p') }}
+            {% if entry.mood %}
+              <span style="float:right;">Mood: {{ entry.mood }}</span>
+            {% endif %}
+        </div>
         <div class="user">You: {{ entry.user_message }}</div>
         <div class="ai">MindMate: {{ entry.ai_reply }}</div>
     </div>

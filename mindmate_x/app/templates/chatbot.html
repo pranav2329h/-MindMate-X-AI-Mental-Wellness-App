@@ -19,6 +19,8 @@
       height: 400px;
       overflow-y: scroll;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
     }
     .message {
       padding: 8px 12px;
@@ -31,8 +33,10 @@
     #chat-form {
       margin-top: 20px;
       display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
     }
-    #message-input {
+    #message-input, #mood-select {
       flex: 1;
       padding: 10px;
       border-radius: 5px;
@@ -40,7 +44,6 @@
     }
     #send-btn {
       padding: 10px 20px;
-      margin-left: 10px;
       background-color: #007bff;
       border: none;
       color: white;
@@ -50,53 +53,65 @@
   </style>
 </head>
 <body>
+
   <h2>MindMate – AI Mental Health Chatbot</h2>
+
   <div id="chat-box"></div>
+
   <form id="chat-form">
     <input type="text" id="message-input" placeholder="Type your message..." required />
+    <select id="mood-select">
+      <option value="">😐 Mood?</option>
+      <option value="happy">😊 Happy</option>
+      <option value="sad">😢 Sad</option>
+      <option value="angry">😡 Angry</option>
+      <option value="anxious">😰 Anxious</option>
+      <option value="neutral">😐 Neutral</option>
+    </select>
     <button type="submit" id="send-btn">Send</button>
   </form>
 
   <script>
-  const chatForm = document.getElementById('chat-form');
-  const chatBox = document.getElementById('chat-box');
-  const messageInput = document.getElementById('message-input');
+    const chatForm = document.getElementById('chat-form');
+    const chatBox = document.getElementById('chat-box');
+    const messageInput = document.getElementById('message-input');
+    const moodSelect = document.getElementById('mood-select');
 
-  chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
 
-    const userMessage = messageInput.value.trim();
-    if (!userMessage) return;
+      const userMessage = messageInput.value.trim();
+      const mood = moodSelect.value;
 
-    appendMessage(userMessage, 'user');
-    messageInput.value = '';
+      if (!userMessage) return;
 
-    // Show spinner while waiting for AI response
-    const spinner = appendMessage("Typing...", 'ai', true);
+      appendMessage(userMessage, 'user');
+      messageInput.value = '';
 
-    try {
-      const response = await fetch('/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
-      });
+      const spinner = appendMessage("Typing...", 'ai', true);
 
-      const data = await response.json();
-      spinner.innerText = data.reply;
-    } catch (error) {
-      spinner.innerText = "Sorry, something went wrong.";
+      try {
+        const response = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userMessage, mood: mood })
+        });
+
+        const data = await response.json();
+        spinner.innerText = data.reply;
+      } catch (error) {
+        spinner.innerText = "Sorry, something went wrong.";
+      }
+    });
+
+    function appendMessage(text, sender, isTemporary = false) {
+      const msg = document.createElement('div');
+      msg.className = `message ${sender}`;
+      msg.innerText = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return isTemporary ? msg : null;
     }
-  });
-
-  function appendMessage(text, sender, isTemporary = false) {
-    const msg = document.createElement('div');
-    msg.className = `message ${sender}`;
-    msg.innerText = text;
-    chatBox.appendChild(msg);
-    chatBox.scrollTop = chatBox.scrollHeight;
-    return isTemporary ? msg : null;
-  }
-</script>
-
+  </script>
 </body>
 </html>
