@@ -2,106 +2,238 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MindMate Dashboard – Mood Analytics</title>
+  <title>MindMate | Mood Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: #f4f7fa;
+      background-color: #f4f7fa;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      transition: background-color 0.3s, color 0.3s;
+      display: flex;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #3f51b5;
+      color: white;
+      padding: 1.5rem 1rem;
+      height: 100vh;
+      position: fixed;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .sidebar img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 1rem;
+    }
+    .sidebar h3 {
+      margin: 0;
+      text-align: center;
+      font-size: 16px;
+    }
+    .container {
+      margin-left: 240px;
+      width: calc(100% - 240px);
+      padding: 2rem;
     }
     h2 {
       text-align: center;
-      color: #333;
+      margin-bottom: 30px;
+      color: #3f51b5;
     }
-    .chart-container {
-      max-width: 800px;
-      margin: 30px auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    canvas {
+      max-width: 100%;
+      margin: 2rem 0;
+    }
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .btn {
+      padding: 10px 15px;
+      background: #3f51b5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .btn:hover {
+      background: #303f9f;
+    }
+    .dark-mode {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    .dark-mode .container {
+      background: #1e1e1e;
+    }
+    @media (max-width: 768px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        justify-content: start;
+        gap: 1rem;
+      }
+      .container {
+        margin: 0;
+        width: 100%;
+        padding: 1rem;
+      }
     }
   </style>
 </head>
 <body>
-
-  <h2>📊 Mood Trend Analysis</h2>
-
-  <div class="chart-container">
-    <canvas id="moodLineChart"></canvas>
+  <div class="sidebar">
+    <img src="{{ url_for('static', filename='avatar.png') }}" alt="User Avatar">
+    <h3>{{ current_user.name }}</h3>
   </div>
 
-  <h2 style="margin-top: 50px;">🥧 Mood Frequency</h2>
-  <div class="chart-container">
+  <div class="container">
+    <h2>Your Mood Dashboard</h2>
+    <div class="btn-group">
+      <button class="btn" onclick="toggleMode()">Toggle Dark Mode</button>
+      <button class="btn" onclick="toggleWeekly()">Toggle Weekly View</button>
+      <button class="btn" onclick="downloadPDF()">Export to PDF</button>
+    </div>
+    <canvas id="moodLineChart"></canvas>
     <canvas id="moodPieChart"></canvas>
   </div>
 
   <script>
-  // Receive data from Flask
-  const moodDates = { dates ,tojson , safe };
-  const moodLabels = { moods ,tojson , safe };
-  const moodData = { mood_data , tojson , safe };
+    const dates = { dates,tojson,safe };
+    const moods = {moods,tojson,safe };
+    const moodData = { mood_data,tojson,safe };
 
+    const moodLevels = {
+      "Happy": 5,
+      "Neutral": 3,
+      "Sad": 2,
+      "Angry": 1,
+      "Anxious": 2.5
+    };
 
-  // Line chart – Mood entries over time
-  const moodLineCtx = document.getElementById('moodLineChart').getContext('2d');
-  new Chart(moodLineCtx, {
-    type: 'line',
-    data: {
-      labels: moodDates,
-      datasets: [{
-        label: 'Mood Entry Index',
-        data: moodLabels.map((_, i) => i + 1),
-        borderColor: '#36a2eb',
-        backgroundColor: '#e3f2fd',
-        fill: true,
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        x: {
-          title: { display: true, text: 'Date' }
-        },
-        y: {
-          beginAtZero: true,
-          title: { display: true, text: 'Entry Count' }
+    const moodColors = {
+      "Happy": "#4caf50",
+      "Sad": "#f44336",
+      "Neutral": "#2196f3",
+      "Angry": "#ff9800",
+      "Anxious": "#9c27b0"
+    };
+
+    let weekly = false;
+
+    function groupWeekly(dates, moods) {
+      const map = new Map();
+      for (let i = 0; i < dates.length; i++) {
+        const week = dates[i].slice(0, 7);
+        if (!map.has(week)) map.set(week, []);
+        map.get(week).push(moodLevels[moods[i]]);
+      }
+      const labels = [...map.keys()];
+      const averages = labels.map(l => {
+        const values = map.get(l);
+        return values.reduce((a, b) => a + b, 0) / values.length;
+      });
+      return { labels, averages };
+    }
+
+    const ctxLine = document.getElementById('moodLineChart');
+    const ctxPie = document.getElementById('moodPieChart');
+
+    const lineChart = new Chart(ctxLine, {
+      type: 'line',
+      data: {
+        labels: dates,
+        datasets: [{
+          label: 'Mood Over Time',
+          data: moods.map(m => moodLevels[m] || 0),
+          borderColor: '#42a5f5',
+          backgroundColor: 'rgba(66, 165, 245, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: 6,
+            ticks: {
+              callback: function(value) {
+                return Object.keys(moodLevels).find(key => moodLevels[key] === value) || '';
+              }
+            }
+          }
         }
       }
-    }
-  });
+    });
 
-  // Pie chart – Mood distribution
-  const moodPieCtx = document.getElementById('moodPieChart').getContext('2d');
-  new Chart(moodPieCtx, {
-    type: 'pie',
-    data: {
-      labels: Object.keys(moodData),
-      datasets: [{
-        data: Object.values(moodData),
-        backgroundColor: [
-          '#4caf50',  // Happy
-          '#f44336',  // Sad
-          '#ff9800',  // Angry
-          '#2196f3',  // Anxious
-          '#9c27b0'   // Neutral
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'bottom'
+    const pieChart = new Chart(ctxPie, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(moodData),
+        datasets: [{
+          data: Object.values(moodData),
+          backgroundColor: Object.keys(moodData).map(mood => moodColors[mood] || '#ccc')
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return `${context.label}: ${context.raw}`;
+              }
+            }
+          },
+          legend: { position: 'bottom' }
         }
       }
+    });
+
+    function toggleWeekly() {
+      weekly = !weekly;
+      if (weekly) {
+        const grouped = groupWeekly(dates, moods);
+        lineChart.data.labels = grouped.labels;
+        lineChart.data.datasets[0].data = grouped.averages;
+      } else {
+        lineChart.data.labels = dates;
+        lineChart.data.datasets[0].data = moods.map(m => moodLevels[m] || 0);
+      }
+      lineChart.update();
     }
-  });
-</script>
 
+    function toggleMode() {
+      document.body.classList.toggle('dark-mode');
+    }
 
+    function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("MindMate Mood Summary", 20, 20);
+      Object.entries(moodData).forEach(([mood, count], i) => {
+        doc.text(`${mood}: ${count}`, 20, 30 + i * 10);
+      });
+      doc.save("mood_report.pdf");
+    }
+  </script>
 </body>
 </html>
